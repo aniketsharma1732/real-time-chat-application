@@ -14,8 +14,9 @@ import {
 import { useState } from "react";
 import { useUserStore } from "../../../../lib/userStore";
 
-const AddUser = () => {
+const AddUser = ({ onClose }) => {
   const [user, setUser] = useState(null);
+  const [error, setError] = useState(""); // 🔴 for custom popup
   const { currentUser } = useUserStore();
 
   const handleSearch = async (e) => {
@@ -29,12 +30,14 @@ const AddUser = () => {
       const querySnapShot = await getDocs(q);
 
       if (!querySnapShot.empty && querySnapShot.docs.length > 0) {
-        const foundUser = querySnapShot.docs[0].data();
-        console.log("User found:", foundUser);
+        const foundUser = {
+          ...querySnapShot.docs[0].data(),
+          id: querySnapShot.docs[0].id,
+        };
         setUser(foundUser);
       } else {
-        console.log("No user found with this username.");
-        setUser(null); // optional: clear previous search
+        setUser(null);
+        setError("No user found with this username.");
       }
     } catch (err) {
       console.error("Error during search:", err);
@@ -44,10 +47,29 @@ const AddUser = () => {
   const handleAdd = async () => {
     if (!user) return;
 
-    const chatRef = collection(db, "chats");
     const userchatsRef = collection(db, "userchats");
 
     try {
+      const currentUserChatsDoc = await getDocs(
+        query(userchatsRef, where("__name__", "==", currentUser.id))
+      );
+
+      if (!currentUserChatsDoc.empty) {
+        const currentUserChats =
+          currentUserChatsDoc.docs[0].data().chats || [];
+
+        const chatExists = currentUserChats.some(
+          (chat) => chat.receiverId === user.id
+        );
+
+        if (chatExists) {
+          setUser(null);
+          setError("You have already added this user.");
+          return;
+        }
+      }
+
+      const chatRef = collection(db, "chats");
       const newChatRef = doc(chatRef);
 
       await setDoc(newChatRef, {
@@ -74,6 +96,7 @@ const AddUser = () => {
       });
 
       console.log("Chat added successfully.");
+      setUser(null);
     } catch (err) {
       console.error("Error adding chat:", err);
     }
@@ -83,7 +106,10 @@ const AddUser = () => {
     <div className="addUser">
       <form onSubmit={handleSearch}>
         <input type="text" placeholder="username" name="username" />
-        <button>Search</button>
+        <button type="submit">Search</button>
+        <button type="button" onClick={onClose} className="cancelBtn">
+          Cancel
+        </button>
       </form>
 
       {user && (
@@ -93,6 +119,16 @@ const AddUser = () => {
             <span>{user.username}</span>
           </div>
           <button onClick={handleAdd}>Add User</button>
+        </div>
+      )}
+
+      {/* Custom popup message */}
+      {error && (
+        <div className="popup">
+          <div className="popup-content">
+            <p>{error}</p>
+            <button onClick={() => setError("")}>OK</button>
+          </div>
         </div>
       )}
     </div>

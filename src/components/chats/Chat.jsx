@@ -23,7 +23,7 @@ const Chat = () => {
         file: null,
         url: "",
     });
-    
+
 
     const endRef = useRef(null);
 
@@ -124,7 +124,7 @@ const Chat = () => {
                 <div className="user">
                     <img src={user?.avatar || "./avatar.png"} alt="" />
                     <div className="texts">
-                        <span>{user?.username }</span>
+                        <span>{user?.username}</span>
                         <p>Start chatting below 👇</p>
                     </div>
                 </div>
@@ -152,7 +152,7 @@ const Chat = () => {
                     <div className="message own uploading">
                         <div className="texts">
                             <img src={img.url} alt="preview" />
-                            
+
                         </div>
                     </div>
                 )}
@@ -174,6 +174,11 @@ const Chat = () => {
                     placeholder={isCurrentUserBlocked || isReceiverBlocked ? "you cannot send a message" : "Type a message..."}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && !isCurrentUserBlocked && !isReceiverBlocked) {
+                            handleSend();
+                        }
+                    }}
                     disabled={isCurrentUserBlocked || isReceiverBlocked}
                 />
                 <div className="emojis">
