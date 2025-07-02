@@ -1,16 +1,14 @@
-import "./list.css"
-import Userinfo from "./userInfo/Userinfo"
-import ChatList from "./chatList/ChatList"
+import "./list.css";
+import Userinfo from "./userInfo/Userinfo";
+import ChatList from "./chatList/ChatList";
 
-
-const List =() =>{
+const List = ({ setActiveSection }) => {
     return (
-        <div className=" list">
-            
-            <Userinfo/>
-            <ChatList/>
+        <div className="list">
+            <Userinfo />
+            <ChatList setActiveSection={setActiveSection} />
         </div>
-    )
-}
+    );
+};
 
-export default List
+export default List;

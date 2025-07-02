@@ -16,7 +16,7 @@ import { useUserStore } from "../../../../lib/userStore";
 
 const AddUser = ({ onClose }) => {
   const [user, setUser] = useState(null);
-  const [error, setError] = useState(""); // 🔴 for custom popup
+  const [error, setError] = useState(""); // for popup
   const { currentUser } = useUserStore();
 
   const handleSearch = async (e) => {
@@ -35,12 +35,14 @@ const AddUser = ({ onClose }) => {
           id: querySnapShot.docs[0].id,
         };
         setUser(foundUser);
+        setError(""); // reset error
       } else {
         setUser(null);
         setError("No user found with this username.");
       }
     } catch (err) {
       console.error("Error during search:", err);
+      setError("Something went wrong. Try again.");
     }
   };
 
@@ -99,30 +101,38 @@ const AddUser = ({ onClose }) => {
       setUser(null);
     } catch (err) {
       console.error("Error adding chat:", err);
+      setError("Failed to add user. Try again.");
     }
   };
 
   return (
     <div className="addUser">
-      <form onSubmit={handleSearch}>
-        <input type="text" placeholder="username" name="username" />
-        <button type="submit">Search</button>
-        <button type="button" onClick={onClose} className="cancelBtn">
-          Cancel
-        </button>
-      </form>
+      {/* Hide form and user block if error exists */}
+      {!error && (
+        <>
+          <form onSubmit={handleSearch}>
+            <input type="text" placeholder="username" name="username" />
+            <div className="button-group">
+              <button type="submit">Search</button>
+              <button type="button" onClick={onClose} className="cancelBtn">
+                Cancel
+              </button>
+            </div>
+          </form>
 
-      {user && (
-        <div className="user">
-          <div className="detail">
-            <img src={user.avatar || "./avatar.png"} alt="" />
-            <span>{user.username}</span>
-          </div>
-          <button onClick={handleAdd}>Add User</button>
-        </div>
+          {user && (
+            <div className="user">
+              <div className="detail">
+                <img src={user.avatar || "./avatar.png"} alt="" />
+                <span>{user.username}</span>
+              </div>
+              <button onClick={handleAdd}>Add User</button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Custom popup message */}
+      {/* Popup for error */}
       {error && (
         <div className="popup">
           <div className="popup-content">

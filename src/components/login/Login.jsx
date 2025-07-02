@@ -3,10 +3,13 @@ import "./login.css";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { auth, db } from "../../lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import upload from "../../lib/upload"; // Import the upload function
+import upload from "../../lib/upload";
 
 const Login = () => {
   const [avatar, setAvatar] = useState({
@@ -14,7 +17,7 @@ const Login = () => {
     url: "",
   });
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   const handleAvatar = (e) => {
     if (e.target.files[0]) {
@@ -31,37 +34,39 @@ const Login = () => {
     const formData = new FormData(e.target);
     const { email, password } = Object.fromEntries(formData);
 
+    if (!email || !password) {
+      toast.error("Please enter both email and password.");
+      setLoading(false);
+      return;
+    }
+
     try {
-
-      await signInWithEmailAndPassword(auth, email, password); 
-
+      await signInWithEmailAndPassword(auth, email, password);
+      // The user state will update via onAuthStateChanged
     } catch (err) {
-      console.log(err);
+      console.error(err);
       toast.error(err.message);
-    } finally{
+    } finally {
       setLoading(false);
     }
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    setLoading(true)
+    setLoading(true);
     const formData = new FormData(e.target);
     const { username, email, password } = Object.fromEntries(formData);
 
-    if (!email || !password) {
-      toast.error("Please fill in all required fields.");
+    if (!username || !email || !password) {
+      toast.error("Please fill in all fields.");
+      setLoading(false);
       return;
     }
 
     try {
-      // Create user with Firebase
       const res = await createUserWithEmailAndPassword(auth, email, password);
-
-      // Upload avatar (ensure `upload` is defined elsewhere in your code)
       const imgUrl = avatar.file ? await upload(avatar.file) : "";
 
-      // Save user data to Firestore
       await setDoc(doc(db, "users", res.user.uid), {
         username,
         email,
@@ -74,7 +79,8 @@ const Login = () => {
         chats: [],
       });
 
-      toast.success("Account created! You can log in now.");
+      toast.success("Account created successfully!");
+      // User is already logged in, no need to redirect or manually sign in
     } catch (err) {
       console.error(err);
       toast.error(err.message || "An error occurred during registration.");
@@ -90,7 +96,7 @@ const Login = () => {
         <form onSubmit={handleLogin}>
           <input type="text" placeholder="Email" name="email" />
           <input type="password" placeholder="Password" name="password" />
-          <button disabled={loading}>{loading ? "Loading" : "Sign In"}</button>
+          <button disabled={loading}>{loading ? "Loading..." : "Sign In"}</button>
         </form>
       </div>
       <div className="separator"></div>
@@ -110,7 +116,7 @@ const Login = () => {
           <input type="text" placeholder="Username" name="username" />
           <input type="text" placeholder="Email" name="email" />
           <input type="password" placeholder="Password" name="password" />
-          <button disabled={loading} >{loading ? "Loading" : "Sign Up"}</button>
+          <button disabled={loading}>{loading ? "Loading..." : "Sign Up"}</button>
         </form>
       </div>
       <ToastContainer />

@@ -6,10 +6,10 @@ import { doc, getDoc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { useChatStore } from "../../../lib/chatStore";
 
-const ChatList = () => {
+const ChatList = ({ setActiveSection }) => {
   const [chats, setChats] = useState([]);
   const [addMode, setAddMode] = useState(false);
-  const [input, setInput]= useState("");
+  const [input, setInput] = useState("");
   const { currentUser } = useUserStore();
   const { changeChat } = useChatStore();
 
@@ -32,40 +32,46 @@ const ChatList = () => {
   }, [currentUser.id]);
 
   const handleSelect = async (chat) => {
-    const userChats = chats.map((item)=>{
-        const{user, ...rest} =item;
-        return rest;
-    });
-    const chatIndex = userChats.findIndex(
-        (item)=> item.chatId ===chat.chatId
-    );
+    const userChats = chats.map(({ user, ...rest }) => rest);
+    const chatIndex = userChats.findIndex(item => item.chatId === chat.chatId);
 
-    userChats[chatIndex].isSeen= true;
-
-    const userChatsRef=doc(db, "userchats", currentUser.id);
-
-    try{
-        await updateDoc(userChatsRef,{
-            chats:userChats,
-        }),
-        changeChat(chat.chatId, chat.user);
-
-    }catch(err){
-        console.log(err)
+    if (chatIndex !== -1) {
+      userChats[chatIndex].isSeen = true;
     }
 
+    const userChatsRef = doc(db, "userchats", currentUser.id);
 
-    
+    try {
+      await updateDoc(userChatsRef, {
+        chats: userChats,
+      });
+
+      changeChat(chat.chatId, chat.user);
+
+      // Hide chat list on mobile
+      if (window.innerWidth <= 768 && setActiveSection) {
+        setActiveSection("chat");
+      }
+
+    } catch (err) {
+      console.log(err);
+    }
   };
 
-  const filteredChats = chats.filter(c=> c.user.username.toLowerCase().includes(input.toLowerCase()))
+  const filteredChats = chats.filter(c =>
+    c.user.username.toLowerCase().includes(input.toLowerCase())
+  );
 
   return (
     <div className="chatList">
       <div className="search">
         <div className="searchBar">
           <img src="./search.png" alt="" />
-          <input type="text" placeholder="search" onChange={(e)=>setInput(e.target.value)}/>
+          <input
+            type="text"
+            placeholder="search"
+            onChange={(e) => setInput(e.target.value)}
+          />
         </div>
         <img
           src={addMode ? "./minus.png" : "./plus.png"}
@@ -82,16 +88,26 @@ const ChatList = () => {
           onClick={() => handleSelect(chat)}
           style={{ backgroundColor: chat?.isSeen ? "transparent" : "#5183fe" }}
         >
-          <img src={chat.user.blocked.includes(currentUser.id) ? "./avatar.png" : chat.user.avatar || "./avatar.png"} alt="" />
+          <img
+            src={
+              chat.user.blocked.includes(currentUser.id)
+                ? "./avatar.png"
+                : chat.user.avatar || "./avatar.png"
+            }
+            alt=""
+          />
           <div className="texts">
-            <span>{chat.user.blocked.includes(currentUser.id) ? "User" : chat.user.username}</span>
+            <span>
+              {chat.user.blocked.includes(currentUser.id)
+                ? "User"
+                : chat.user.username}
+            </span>
             <p>{chat.lastMessage}</p>
           </div>
         </div>
       ))}
 
       {addMode && <AddUser onClose={() => setAddMode(false)} />}
-
     </div>
   );
 };

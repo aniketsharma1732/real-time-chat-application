@@ -78,3 +78,46 @@
         }
     }
 }
+@media (max-width: 768px) {
+  .login {
+    flex-direction: column;
+    gap: 40px;
+    padding: 20px;
+    padding-top: 4rem;
+    justify-content: center;
+
+    .item {
+      width: 100%;
+      padding: 10px;
+
+      form {
+        width: 90%;
+        gap: 16px;
+
+        input {
+          width: 100%;
+          padding: 14px;
+          font-size: 0.95rem;
+        }
+
+        label {
+          font-size: 0.9rem;
+          img {
+            width: 40px;
+            height: 40px;
+          }
+        }
+
+        button {
+          width: 100%;
+          padding: 14px;
+          font-size: 1rem;
+        }
+      }
+
+      .separator {
+        display: none;
+      }
+    }
+  }
+}

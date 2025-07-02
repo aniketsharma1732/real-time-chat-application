@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, useEffect } from "react";
 import "./chat.css";
 import EmojiPicker from "emoji-picker-react";
 import {
@@ -13,23 +13,15 @@ import { useChatStore } from "../../lib/chatStore";
 import { useUserStore } from "../../lib/userStore";
 import upload from "../../lib/upload";
 
-const Chat = () => {
+const Chat = ({ setActiveSection }) => {
     const [chat, setChat] = useState(null);
     const [open, setOpen] = useState(false);
     const [text, setText] = useState("");
     const { chatId, user, isCurrentUserBlocked, isReceiverBlocked } = useChatStore();
     const { currentUser } = useUserStore();
-    const [img, setImg] = useState({
-        file: null,
-        url: "",
-    });
-
-
+    const [img, setImg] = useState({ file: null, url: "" });
     const endRef = useRef(null);
-
-    useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [chat?.messages?.length]);
+    const [zoomedImage, setZoomedImage] = useState(null);
 
     useEffect(() => {
         if (!chatId) return;
@@ -38,10 +30,14 @@ const Chat = () => {
             setChat(res.data());
         });
 
-        return () => {
-            unSub();
-        };
+        return () => unSub();
     }, [chatId]);
+
+    useLayoutEffect(() => {
+        if (chat?.messages?.length > 0) {
+            endRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [chat?.messages?.length]);
 
     const handleEmoji = (e) => {
         setText((prev) => prev + e.emoji);
@@ -57,7 +53,6 @@ const Chat = () => {
         }
     };
 
-
     const handleSend = async () => {
         if (text.trim() === "") return;
 
@@ -67,6 +62,7 @@ const Chat = () => {
             if (img.file) {
                 imgUrl = await upload(img.file);
             }
+
             const newMessage = {
                 senderId: currentUser.id,
                 text,
@@ -81,58 +77,57 @@ const Chat = () => {
             const userIDs = [currentUser.id, user.id];
 
             userIDs.forEach(async (id) => {
-                const userChatsRef = doc(db, "userchats", id); // 🔁 Make sure this matches your DB structure
+                const userChatsRef = doc(db, "userchats", id);
                 const userChatsSnapshot = await getDoc(userChatsRef);
 
                 if (userChatsSnapshot.exists()) {
                     const userChatsData = userChatsSnapshot.data();
+                    const chatIndex = userChatsData.chats.findIndex(c => c.chatId === chatId);
+                    if (chatIndex !== -1) {
+                        userChatsData.chats[chatIndex].lastMessage = text;
+                        userChatsData.chats[chatIndex].isSeen = id === currentUser.id;
+                        userChatsData.chats[chatIndex].updatedAt = Date.now();
 
-                    if (Array.isArray(userChatsData.chats)) {
-                        const chatIndex = userChatsData.chats.findIndex(
-                            (c) => c.chatId === chatId
-                        );
-
-                        if (chatIndex !== -1) {
-                            userChatsData.chats[chatIndex].lastMessage = text;
-                            userChatsData.chats[chatIndex].isSeen = id === currentUser.id;
-                            userChatsData.chats[chatIndex].updatedAt = Date.now();
-
-                            await updateDoc(userChatsRef, {
-                                chats: userChatsData.chats,
-                            });
-                        }
+                        await updateDoc(userChatsRef, {
+                            chats: userChatsData.chats,
+                        });
                     }
                 }
             });
 
-            setText(""); // Clear input after sending
+            setText("");
+            setImg({ file: null, url: "" });
         } catch (err) {
             console.log("Error sending message:", err);
         }
-
-        setImg({
-            file: null,
-            url: ""
-        })
-
-        setText("");
     };
 
     return (
         <div className="chat">
             <div className="top">
-                <div className="user">
+                <div className="user" onClick={() => {
+                    if (window.innerWidth <= 768 && setActiveSection) {
+                        setActiveSection("detail");
+                    }
+                }}
+                    style={{ cursor: window.innerWidth <= 768 ? "pointer" : "default" }}>
                     <img src={user?.avatar || "./avatar.png"} alt="" />
                     <div className="texts">
                         <span>{user?.username}</span>
-                        <p>Start chatting below 👇</p>
+                        <p>click here for more</p>
                     </div>
                 </div>
-                <div className="icons">
-                    <img src="./phone.png" alt="Call" />
-                    <img src="./video.png" alt="Video" />
-                    <img src="./info.png" alt="Info" />
-                </div>
+                <button
+                    className="backButton"
+                    onClick={() => {
+                        if (window.innerWidth <= 768 && setActiveSection) {
+                            setActiveSection("chatList");
+                        }
+                    }}
+                    style={{ display: window.innerWidth <= 768 ? 'inline-block' : 'none' }}
+                >
+                    ←
+                </button>
             </div>
 
             <div className="center">
@@ -142,9 +137,15 @@ const Chat = () => {
                         key={message.createdAt?.toString() || index}
                     >
                         <div className="texts">
-                            {message.img && <img src={message.img} alt="msg media" />}
+                            {message.img && (
+                                <img
+                                    src={message.img}
+                                    alt="msg media"
+                                    onClick={() => setZoomedImage(message.img)}
+                                    className="messageImage"
+                                />
+                            )}
                             <p>{message.text}</p>
-                            {/* <span>{message}</span>*/}
                         </div>
                     </div>
                 ))}
@@ -152,22 +153,23 @@ const Chat = () => {
                     <div className="message own uploading">
                         <div className="texts">
                             <img src={img.url} alt="preview" />
-
                         </div>
                     </div>
                 )}
-
                 <div ref={endRef}></div>
             </div>
 
             <div className="bottom">
                 <div className="icons">
-                    <label htmlFor="file">
+                    <label htmlFor="fileUpload">
                         <img src="./img.png" alt="Upload" />
                     </label>
-                    <input type="file" id="file" style={{ display: "none" }} onChange={handleImg} />
-                    <img src="./camera.png" alt="Camera" />
-                    <img src="./mic.png" alt="Mic" />
+                    <input
+                        type="file"
+                        id="fileUpload"
+                        style={{ display: "none" }}
+                        onChange={handleImg}
+                    />
                 </div>
                 <input
                     type="text"
@@ -181,22 +183,18 @@ const Chat = () => {
                     }}
                     disabled={isCurrentUserBlocked || isReceiverBlocked}
                 />
-                <div className="emojis">
-                    <img
-                        src="./emoji.png"
-                        alt="emoji"
-                        onClick={() => setOpen((prev) => !prev)}
-                    />
-                    {open && (
-                        <div className="picker">
-                            <EmojiPicker open={open} onEmojiClick={handleEmoji} />
-                        </div>
-                    )}
-                </div>
                 <button className="sendButton" onClick={handleSend} disabled={isCurrentUserBlocked || isReceiverBlocked}>
                     Send
                 </button>
             </div>
+
+            {/* Fullscreen Zoom Image Modal */}
+            {zoomedImage && (
+                <div className="imageModal">
+                    <span className="closeBtn" onClick={() => setZoomedImage(null)}>×</span>
+                    <img src={zoomedImage} alt="Zoomed" />
+                </div>
+            )}
         </div>
     );
 };
