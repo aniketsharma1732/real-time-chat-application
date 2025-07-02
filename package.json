@@ -1,10 +1,10 @@
 {
   "name": "chat-starter",
+  "homepage": "https://aniketsharma1732.github.io/real-time-chat-application",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://aniketsharma1732.github.io/real-time-chat-application",
-  "scripts": {
+    "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
