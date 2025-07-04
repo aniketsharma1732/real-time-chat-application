@@ -1,8 +1,10 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
+// Use GitHub-specific base only when building for production and deploying to GitHub Pages
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+
 export default defineConfig({
-  base: "/real-time-chat-application/", // 🔥 IMPORTANT for GitHub Pages
   plugins: [react()],
+  base: isGitHubPages ? '/real-time-chat-application/' : '/',
 });
